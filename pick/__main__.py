@@ -130,7 +130,7 @@ class Main(object):
         self.grab(self.btngrab)
 
     def handle_commandline(self, app, cmdline):
-        if hasattr(self, "w"):
+        if hasattr(self, "window"):
             # already started
             if "--about" in cmdline.get_arguments():
                 self.show_about_dialog()
@@ -150,20 +150,20 @@ class Main(object):
         GLib.set_application_name("Pick")
 
         # the window
-        self.w = Gtk.ApplicationWindow.new(self.app)
-        self.w.set_title("Pick")
-        self.w.set_size_request((self.snapsize[0]/2) * 2 + 200,
+        self.window = Gtk.ApplicationWindow.new(self.app)
+        self.window.set_title("Pick")
+        self.window.set_size_request((self.snapsize[0]/2) * 2 + 200,
                                 (self.snapsize[1]/2) * 5 + 200)
-        self.w.connect("motion-notify-event", self.magnifier_move)
-        self.w.connect("button-press-event", self.magnifier_clicked)
-        self.w.connect("scroll-event", self.magnifier_scrollwheel)
-        self.w.connect("key-press-event", self.magnifier_keypress)
-        self.w.connect("configure-event", self.window_configure)
-        self.w.connect("destroy", lambda a: self.app.quit())
+        self.window.connect("motion-notify-event", self.magnifier_move)
+        self.window.connect("button-press-event", self.magnifier_clicked)
+        self.window.connect("scroll-event", self.magnifier_scrollwheel)
+        self.window.connect("key-press-event", self.magnifier_keypress)
+        self.window.connect("configure-event", self.window_configure)
+        self.window.connect("destroy", lambda a: self.app.quit())
         if on_window_map:
-            self.w.connect("map-event", on_window_map)
+            self.window.connect("map-event", on_window_map)
 
-        devman = self.w.get_screen().get_display().get_device_manager()
+        devman = self.window.get_screen().get_display().get_device_manager()
         self.pointer = devman.get_client_pointer()
         keyboards = [
             x for x in devman.list_devices(Gdk.DeviceType.MASTER)
@@ -176,17 +176,17 @@ class Main(object):
 
         # The lowlight colour: used for subsidiary text throughout,
         # and looked up from the theme
-        ok, col = self.w.get_style_context().lookup_color("theme_text_color")
+        ok, col = self.window.get_style_context().lookup_color("theme_text_color")
         if ok:
             self.lowlight_rgba = col
         else:
             self.lowlight_rgba = Gdk.RGBA(red=0.5, green=0.5,
                                           blue=0.5, alpha=1)
-        ok, col = self.w.get_style_context().lookup_color("theme_fg_color")
+        ok, col = self.window.get_style_context().lookup_color("theme_fg_color")
         if ok:
             self.highlight_rgba = col
         else:
-            self.highlight_rgba = self.w.get_style_context().get_color(
+            self.highlight_rgba = self.window.get_style_context().get_color(
                 Gtk.StateFlags.NORMAL)
 
         # The CSS
@@ -228,7 +228,7 @@ class Main(object):
         head = Gtk.HeaderBar()
         head.set_show_close_button(True)
         head.props.title = "Pick"
-        self.w.set_titlebar(head)
+        self.window.set_titlebar(head)
         btngrab = Gtk.Button()
         self.btngrab = btngrab
         icon = Gio.ThemedIcon(name="pick-colour-picker-symbolic")
@@ -337,7 +337,7 @@ class Main(object):
             # print("Theme icon exists")
             image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.DIALOG)
             # and get a pixbuf from it to use as the default icon
-            self.w.set_default_icon(theme_icon.load_icon())
+            self.window.set_default_icon(theme_icon.load_icon())
         else:
             image = None
             # not in the theme, so we're probably running locally;
@@ -366,7 +366,7 @@ class Main(object):
                     image = Gtk.Image.new_from_file(ficon)
             # and set this as the default icon if it exists
             if image:
-                self.w.set_default_icon(image.get_pixbuf())
+                self.window.set_default_icon(image.get_pixbuf())
         if image:
             image.set_property("valign", Gtk.Align.END)
         self.empty.pack_start(image, True, True, 0)
@@ -376,10 +376,10 @@ class Main(object):
         nocol2 = Gtk.Label(label="You haven't picked any colours.")
         nocol2.set_property("valign", Gtk.Align.START)
         self.empty.pack_start(nocol2, True, True, 0)
-        self.w.add(self.empty)
+        self.window.add(self.empty)
 
         # and, go
-        self.w.show_all()
+        self.window.show_all()
         GLib.idle_add(self.load_history)
 
     def window_configure(self, window, ev):
@@ -397,7 +397,7 @@ class Main(object):
         self.save_window_metrics(props)
 
     def save_window_metrics(self, props):
-        scr = self.w.get_screen()
+        scr = self.window.get_screen()
         sw = float(scr.get_width())
         sh = float(scr.get_height())
         # We save window dimensions as fractions of the screen dimensions,
@@ -411,13 +411,13 @@ class Main(object):
         self.serialise()
 
     def moveit(self, x, y):
-        self.w.move(x, y)
+        self.window.move(x, y)
 
     def sizeit(self, w, h):
-        self.w.resize(w, h)
+        self.window.resize(w, h)
 
     def restore_window_metrics(self, metrics):
-        scr = self.w.get_screen()
+        scr = self.window.get_screen()
         sw = float(scr.get_width())
         sh = float(scr.get_height())
         GLib.timeout_add(50, self.moveit,
@@ -454,7 +454,7 @@ class Main(object):
               </menubar>
             </ui>""")
         accelgroup = uimanager.get_accel_group()
-        self.w.add_accel_group(accelgroup)
+        self.window.add_accel_group(accelgroup)
         uimanager.insert_action_group(action_group)
         menubar = uimanager.get_widget("/MenuBar")
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -487,8 +487,8 @@ class Main(object):
         self.history = []
         for c in self.container_vb.get_children():
             c.get_parent().remove(c)
-        self.w.remove(self.vb)
-        self.w.add(self.empty)
+        self.window.remove(self.vb)
+        self.window.add(self.empty)
         self.serialise()
 
     def grab(self, btn):
@@ -497,13 +497,13 @@ class Main(object):
         # a pick even though we're transparent
         if self.keyboard:
             self.keyboard.grab(
-                self.w.get_window(),
+                self.window.get_window(),
                 Gdk.GrabOwnership.APPLICATION,
                 True,
                 Gdk.EventMask.KEY_PRESS_MASK,
                 None,
                 Gdk.CURRENT_TIME)
-        self.w.set_opacity(0.0)
+        self.window.set_opacity(0.0)
         self.set_magnifier_cursor()
         # grab cursor img again after win is transparent
         # even if mouse doesn't move
@@ -630,13 +630,13 @@ class Main(object):
             self.snapsize[0] * self.zoomlevel, self.snapsize[1] * self.zoomlevel,
             GdkPixbuf.InterpType.TILES)
         magnifier = Gdk.Cursor.new_from_pixbuf(
-            self.w.get_screen().get_display(),
+            self.window.get_screen().get_display(),
             zoom_pb,
             zoom_pb.get_width()/2, zoom_pb.get_height()/2)
 
         # Set the cursor
         res = self.pointer.grab(
-            self.w.get_window(),
+            self.window.get_window(),
             Gdk.GrabOwnership.APPLICATION,
             True,
             (Gdk.EventMask.BUTTON_PRESS_MASK |
@@ -650,8 +650,8 @@ class Main(object):
         if self.keyboard:
             self.keyboard.ungrab(Gdk.CURRENT_TIME)
         self.grabbed = False
-        self.w.set_opacity(1.0)
-        self.w.present()
+        self.window.set_opacity(1.0)
+        self.window.present()
 
     def get_cache_file(self):
         return os.path.join(GLib.get_user_cache_dir(), "colour-picker.json")
@@ -788,7 +788,7 @@ class Main(object):
         if self.empty.get_parent():
             self.empty.get_parent().remove(self.empty)
         if not self.vb.get_parent():
-            self.w.add(self.vb)
+            self.window.add(self.vb)
             self.vb.show_all()
         self.btnclear.set_sensitive(True)
 
