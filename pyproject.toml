@@ -5,14 +5,19 @@ description = ""
 authors = ["Blackgolyb <andrejomelnickij@gmail.com>"]
 license = "MIT"
 readme = "README.md"
+packages = [
+    { include = "pick" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
+pygobject = "^3.46.0"
 
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.12.1"
 ruff = "^0.1.9"
+isort = "^5.13.2"
 
 [build-system]
 requires = ["poetry-core"]
