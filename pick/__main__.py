@@ -12,7 +12,7 @@ import gi
 
 gi.require_version('Gtk', '3.0')
 
-from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Gtk, Gdk, GdkPixbuf, Gio, GLib  # noqa: E402 isort: skip
 
 try:
     gi.require_version('Unity', '7.0')
