@@ -1,19 +1,31 @@
+import base64
+import codecs
+import colorsys
+import json
+import math
+import os
+import subprocess
+import sys
+
+import cairo
 import gi
+
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GLib, GdkPixbuf, Gio
+
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk  # noqa: E402
+
 try:
     gi.require_version('Unity', '7.0')
     from gi.repository import Unity
 except:
     Unity = False
-import cairo, math, json, os, codecs, time, subprocess, sys, base64, colorsys
-
-__VERSION__ = "1.60.178"
 
 if "--snark" in sys.argv:
-    from .snark import COLOUR_NAMES
+    from pick.snark import COLOUR_NAMES
 else:
-    from .colours import COLOUR_NAMES
+    from pick.colours import COLOUR_NAMES
+
+__VERSION__ = "1.60.178"
 
 
 def rgb_to_lab(r, g, b):
