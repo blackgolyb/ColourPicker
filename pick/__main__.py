@@ -17,7 +17,7 @@ from gi.repository import Gtk, Gdk, GdkPixbuf, Gio, GLib  # noqa: E402 isort: sk
 try:
     gi.require_version('Unity', '7.0')
     from gi.repository import Unity
-except:
+except ValueError:
     Unity = False
 
 if "--snark" in sys.argv:
@@ -510,7 +510,6 @@ class Main(object):
         GLib.timeout_add(250, self.set_magnifier_cursor)
 
     def set_magnifier_cursor(self):
-        root = Gdk.get_default_root_window()
         pointer, px, py = self.pointer.get_position()
 
         # Screenshot where the cursor is, at snapsize
@@ -635,7 +634,7 @@ class Main(object):
             zoom_pb.get_width()/2, zoom_pb.get_height()/2)
 
         # Set the cursor
-        res = self.pointer.grab(
+        self.pointer.grab(
             self.window.get_window(),
             Gdk.GrabOwnership.APPLICATION,
             True,
@@ -895,7 +894,7 @@ class Main(object):
         # pixel data gets returned as bytes or int depending
         # on which Python version we're in
         for x in pixel_data[offset:offset+3]:
-            if type(x) == int:
+            if isinstance(x, int):
                 rgb_vals.append(x)
             else:
                 rgb_vals.append(ord(x))
@@ -949,4 +948,5 @@ def main():
     m.app.run(sys.argv)
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()
