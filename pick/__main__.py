@@ -10,12 +10,12 @@ import sys
 import cairo
 import gi
 
-gi.require_version('Gtk', '3.0')
+gi.require_version("Gtk", "3.0")
 
 from gi.repository import Gtk, Gdk, GdkPixbuf, Gio, GLib  # noqa: E402 isort: skip
 
 try:
-    gi.require_version('Unity', '7.0')
+    gi.require_version("Unity", "7.0")
     from gi.repository import Unity
 except ValueError:
     Unity = False
@@ -30,10 +30,12 @@ __VERSION__ = "1.60.178"
 
 def rgb_to_lab(r, g, b):
     """Convert RGB colours to LAB colours
-       thank you Roman Nazarkin, http://stackoverflow.com/a/16020102/1418014"""
+    thank you Roman Nazarkin, http://stackoverflow.com/a/16020102/1418014"""
+
     inputColor = [r, g, b]
     num = 0
     RGB = [0, 0, 0]
+
     for value in inputColor:
         value = float(value) / 255
         if value > 0.04045:
@@ -42,6 +44,7 @@ def rgb_to_lab(r, g, b):
             value = value / 12.92
         RGB[num] = value * 100
         num = num + 1
+
     XYZ = [0, 0, 0]
     X = RGB[0] * 0.4124 + RGB[1] * 0.3576 + RGB[2] * 0.1805
     Y = RGB[0] * 0.2126 + RGB[1] * 0.7152 + RGB[2] * 0.0722
@@ -50,9 +53,9 @@ def rgb_to_lab(r, g, b):
     XYZ[1] = round(Y, 4)
     XYZ[2] = round(Z, 4)
 
-    XYZ[0] = float(XYZ[0]) / 95.047   # ref_X =  95.047
+    XYZ[0] = float(XYZ[0]) / 95.047  # ref_X =  95.047
     # XYZ[0]: Observer= 2deg, Illuminant= D65
-    XYZ[1] = float(XYZ[1]) / 100.0    # ref_Y = 100.000
+    XYZ[1] = float(XYZ[1]) / 100.0  # ref_Y = 100.000
     XYZ[2] = float(XYZ[2]) / 108.883  # ref_Z = 108.883
 
     num = 0
@@ -79,6 +82,7 @@ def rgb_to_lab(r, g, b):
 def deltaE(labA, labB):
     """deltaE is the standard way to compare two colours
     for how visibly alike they are"""
+
     deltaL = labA[0] - labB[0]
     deltaA = labA[1] - labB[1]
     deltaB = labA[2] - labB[2]
@@ -86,17 +90,19 @@ def deltaE(labA, labB):
     c2 = math.sqrt(labB[1] * labB[1] + labB[2] * labB[2])
     deltaC = c1 - c2
     deltaH = deltaA * deltaA + deltaB * deltaB - deltaC * deltaC
+
     if deltaH < 0:
         deltaH = 0
     else:
         deltaH = math.sqrt(deltaH)
+
     sc = 1.0 + 0.045 * c1
     sh = 1.0 + 0.015 * c1
     deltaLKlsl = deltaL / (1.0)
     deltaCkcsc = deltaC / (sc)
     deltaHkhsh = deltaH / (sh)
-    i = (deltaLKlsl * deltaLKlsl + deltaCkcsc * deltaCkcsc +
-         deltaHkhsh * deltaHkhsh)
+
+    i = deltaLKlsl * deltaLKlsl + deltaCkcsc * deltaCkcsc + deltaHkhsh * deltaHkhsh
     if i < 0:
         return 0
     else:
@@ -121,8 +127,8 @@ class Main(object):
 
         # create application
         self.app = Gtk.Application.new(
-            "org.kryogenix.Pick",
-            Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
+            "org.kryogenix.Pick", Gio.ApplicationFlags.HANDLES_COMMAND_LINE
+        )
         self.app.connect("command-line", self.handle_commandline)
 
     def pick_after_window_mapped(self, window, _):
@@ -152,8 +158,9 @@ class Main(object):
         # the window
         self.window = Gtk.ApplicationWindow.new(self.app)
         self.window.set_title("Pick")
-        self.window.set_size_request((self.snapsize[0]/2) * 2 + 200,
-                                (self.snapsize[1]/2) * 5 + 200)
+        self.window.set_size_request(
+            (self.snapsize[0] / 2) * 2 + 200, (self.snapsize[1] / 2) * 5 + 200
+        )
         self.window.connect("motion-notify-event", self.magnifier_move)
         self.window.connect("button-press-event", self.magnifier_clicked)
         self.window.connect("scroll-event", self.magnifier_scrollwheel)
@@ -166,7 +173,8 @@ class Main(object):
         devman = self.window.get_screen().get_display().get_device_manager()
         self.pointer = devman.get_client_pointer()
         keyboards = [
-            x for x in devman.list_devices(Gdk.DeviceType.MASTER)
+            x
+            for x in devman.list_devices(Gdk.DeviceType.MASTER)
             if x.get_property("input-source") == Gdk.InputSource.KEYBOARD
         ]
         self.keyboard = None
@@ -180,19 +188,21 @@ class Main(object):
         if ok:
             self.lowlight_rgba = col
         else:
-            self.lowlight_rgba = Gdk.RGBA(red=0.5, green=0.5,
-                                          blue=0.5, alpha=1)
+            self.lowlight_rgba = Gdk.RGBA(red=0.5, green=0.5, blue=0.5, alpha=1)
         ok, col = self.window.get_style_context().lookup_color("theme_fg_color")
         if ok:
             self.highlight_rgba = col
         else:
             self.highlight_rgba = self.window.get_style_context().get_color(
-                Gtk.StateFlags.NORMAL)
+                Gtk.StateFlags.NORMAL
+            )
 
         # The CSS
-        highlight_average = (self.highlight_rgba.red +
-                             self.highlight_rgba.green +
-                             self.highlight_rgba.blue) / 3
+        highlight_average = (
+            self.highlight_rgba.red
+            + self.highlight_rgba.green
+            + self.highlight_rgba.blue
+        ) / 3
         if highlight_average > 0.5:
             ROWBGCOL = "rgba(0, 0, 0, 0.6)"
         else:
@@ -216,12 +226,16 @@ class Main(object):
                 border-width: 0;
                 padding: 6px 0;
             }
-        """.replace("ROWBGCOL", ROWBGCOL).encode("utf-8")
+        """.replace(
+            "ROWBGCOL", ROWBGCOL
+        ).encode(
+            "utf-8"
+        )
         style_provider.load_from_data(css)
         Gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(),
             style_provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
         )
 
         # the headerbar
@@ -240,11 +254,19 @@ class Main(object):
         else:
             # not in the theme, so we're probably running locally;
             # use the local one
-            snap_icon = os.path.join(os.path.split(__file__)[0], "..",
-                "data", "icons", "scalable", "apps",
-                "pick-colour-picker-symbolic.svg")
-            flatpak_icon = ("/app/share/icons/hicolor/scalable/apps/"
-                "org.kryogenix.Pick-symbolic.svg")
+            snap_icon = os.path.join(
+                os.path.split(__file__)[0],
+                "..",
+                "data",
+                "icons",
+                "scalable",
+                "apps",
+                "pick-colour-picker-symbolic.svg",
+            )
+            flatpak_icon = (
+                "/app/share/icons/hicolor/scalable/apps/"
+                "org.kryogenix.Pick-symbolic.svg"
+            )
             if os.path.isfile(snap_icon):
                 image = Gtk.Image.new_from_file(snap_icon)
             elif os.path.isfile(flatpak_icon):
@@ -265,31 +287,31 @@ class Main(object):
         # the status bar and its formats list
         hb = Gtk.HBox()
         self.formatters = {
-            "CSS hex": lambda r, g, b: "#%02x%02x%02x" % (
-                int(r), int(g), int(b)),
-            "CSS uppercase hex": lambda r, g, b: ("#%02x%02x%02x" % (
-                int(r), int(g), int(b))).upper(),
-            "CSS rgb": lambda r, g, b: "rgb(%s, %s, %s)" % (
-                int(r), int(g), int(b)),
-            "CSS rgba": lambda r, g, b: "rgba(%s, %s, %s, 1)" % (
-                int(r), int(g), int(b)),
-            "CSS rgb (new-style)": lambda r, g, b: "rgb(%s  %s  %s)" % (
-                int(r), int(g), int(b)),
-            "CSS rgba (new-style)": lambda r, g, b: "rgb(%s  %s  %s / 100%%)" % (
-                int(r), int(g), int(b)),
-            "CSS lab": lambda r, g, b: "lab({:.0f}%  {:.0f}  {:.0f} / 100%)".format(*rgb_to_lab(
-                int(r), int(g), int(b))),
+            "CSS hex": lambda r, g, b: "#%02x%02x%02x" % (int(r), int(g), int(b)),
+            "CSS uppercase hex": lambda r, g, b: (
+                "#%02x%02x%02x" % (int(r), int(g), int(b))
+            ).upper(),
+            "CSS rgb": lambda r, g, b: "rgb(%s, %s, %s)" % (int(r), int(g), int(b)),
+            "CSS rgba": lambda r, g, b: "rgba(%s, %s, %s, 1)"
+            % (int(r), int(g), int(b)),
+            "CSS rgb (new-style)": lambda r, g, b: "rgb(%s  %s  %s)"
+            % (int(r), int(g), int(b)),
+            "CSS rgba (new-style)": lambda r, g, b: "rgb(%s  %s  %s / 100%%)"
+            % (int(r), int(g), int(b)),
+            "CSS lab": lambda r, g, b: "lab({:.0f}%  {:.0f}  {:.0f} / 100%)".format(
+                *rgb_to_lab(int(r), int(g), int(b))
+            ),
             "CSS hsl": lambda r, g, b: "hsl({:.0f}deg  {:.0f}%  {:.0f}%)".format(
-                colorsys.rgb_to_hls(r/255.0, g/255.0, b/255.0)[0] * 360,
-                colorsys.rgb_to_hls(r/255.0, g/255.0, b/255.0)[2] * 100,
-                colorsys.rgb_to_hls(r/255.0, g/255.0, b/255.0)[1] * 100),
-            "GDK.RGBA": lambda r, g, b: "Gdk.RGBA(%.3f, %.3f, %.3f, 1.0)" % (
-                r/255.0, g/255.0, b/255.0),
-            "QML Qt.rgba": lambda r, g, b: "Qt.rgba(%.3f, %.3f, %.3f, 1.0)" % (
-                r/255.0, g/255.0, b/255.0),
-            "Android resource": lambda r, g, b:
-                "<color name=\"%s\">#%02x%02x%02x</color>" % (
-                    self.closest_name(r, g, b).lower(), r, g, b)
+                colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)[0] * 360,
+                colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)[2] * 100,
+                colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)[1] * 100,
+            ),
+            "GDK.RGBA": lambda r, g, b: "Gdk.RGBA(%.3f, %.3f, %.3f, 1.0)"
+            % (r / 255.0, g / 255.0, b / 255.0),
+            "QML Qt.rgba": lambda r, g, b: "Qt.rgba(%.3f, %.3f, %.3f, 1.0)"
+            % (r / 255.0, g / 255.0, b / 255.0),
+            "Android resource": lambda r, g, b: '<color name="%s">#%02x%02x%02x</color>'
+            % (self.closest_name(r, g, b).lower(), r, g, b),
         }
         formats = Gtk.ListStore(str)
         for fr, fn in self.formatters.items():
@@ -301,11 +323,10 @@ class Main(object):
         vcell = Gtk.CellRendererText()
         self.fcom.pack_start(vcell, True)
         self.fcom.set_cell_data_func(vcell, self.formatRGB)
-        vcell.set_property('xalign', 1.0)
+        vcell.set_property("xalign", 1.0)
         vcell.set_property("foreground_rgba", self.lowlight_rgba)
         self.active_formatter = "CSS rgb"
-        self.fcom.set_active(list(self.formatters.keys()).index(
-            self.active_formatter))
+        self.fcom.set_active(list(self.formatters.keys()).index(self.active_formatter))
         self.fcom.connect("changed", self.change_format)
         hb.pack_start(Gtk.Label(label="Format:"), False, False, 12)
         hb.pack_start(self.fcom, False, False, 12)
@@ -343,8 +364,14 @@ class Main(object):
             # not in the theme, so we're probably running locally;
             # use the local one
             licon = os.path.join(
-                os.path.split(__file__)[0], "..",
-                "data", "icons", "48x48", "apps", "pick-colour-picker.png")
+                os.path.split(__file__)[0],
+                "..",
+                "data",
+                "icons",
+                "48x48",
+                "apps",
+                "pick-colour-picker.png",
+            )
             if os.path.exists(licon):
                 # print("Using local icon", licon)
                 image = Gtk.Image.new_from_file(licon)
@@ -352,14 +379,21 @@ class Main(object):
                 # probably we're in a snap
                 sicon = os.path.join(
                     os.path.split(__file__)[0],
-                    os.environ.get('SNAP'), "usr", "share", "icons", "hicolor",
-                    "48x48", "apps", "pick-colour-picker.png")
+                    os.environ.get("SNAP"),
+                    "usr",
+                    "share",
+                    "icons",
+                    "hicolor",
+                    "48x48",
+                    "apps",
+                    "pick-colour-picker.png",
+                )
                 if os.path.exists(sicon):
                     # print("Using local snap icon", sicon)
                     image = Gtk.Image.new_from_file(sicon)
             else:
                 # probably we're in a flatpak
-                #print("Probably in a flatpak"
+                # print("Probably in a flatpak"
                 ficon = "/app/share/icons/hicolor/48x48/apps/org.kryogenix.Pick.png"
                 if os.path.exists(ficon):
                     # print("Using local flatpak icon", ficon)
@@ -388,8 +422,10 @@ class Main(object):
         if self.resize_timeout:
             GLib.source_remove(self.resize_timeout)
         self.resize_timeout = GLib.timeout_add_seconds(
-            1, self.save_window_metrics_after_timeout,
-            {"x": ev.x, "y": ev.y, "w": ev.width, "h": ev.height})
+            1,
+            self.save_window_metrics_after_timeout,
+            {"x": ev.x, "y": ev.y, "w": ev.width, "h": ev.height},
+        )
 
     def save_window_metrics_after_timeout(self, props):
         GLib.source_remove(self.resize_timeout)
@@ -406,7 +442,7 @@ class Main(object):
             "ww": props["w"] / sw,
             "wh": props["h"] / sh,
             "wx": props["x"] / sw,
-            "wy": props["y"] / sh
+            "wy": props["y"] / sh,
         }
         self.serialise()
 
@@ -420,28 +456,34 @@ class Main(object):
         scr = self.window.get_screen()
         sw = float(scr.get_width())
         sh = float(scr.get_height())
-        GLib.timeout_add(50, self.moveit,
-                         int(sw * metrics["wx"]), int(sh * metrics["wy"]))
-        GLib.timeout_add(55, self.sizeit,
-                         int(sw * metrics["ww"]), int(sh * metrics["wh"]))
+        GLib.timeout_add(
+            50, self.moveit, int(sw * metrics["wx"]), int(sh * metrics["wy"])
+        )
+        GLib.timeout_add(
+            55, self.sizeit, int(sw * metrics["ww"]), int(sh * metrics["wh"])
+        )
 
     def add_desktop_menu(self):
         action_group = Gtk.ActionGroup("menu_actions")
         action_filemenu = Gtk.Action("FileMenu", "File", None, None)
         action_group.add_action(action_filemenu)
-        action_new = Gtk.Action("FileCapture", "_Capture",
-                                "Capture a pixel colour", Gtk.STOCK_NEW)
+        action_new = Gtk.Action(
+            "FileCapture", "_Capture", "Capture a pixel colour", Gtk.STOCK_NEW
+        )
         action_new.connect("activate", self.grab)
         action_group.add_action_with_accel(action_new, None)
         action_filequit = Gtk.Action("FileQuit", None, None, Gtk.STOCK_QUIT)
         action_filequit.connect("activate", lambda a: self.app.quit())
         action_group.add_action(action_filequit)
-        action_group.add_actions([
-            ("HelpMenu", None, "Help"),
-            ("HelpAbout", None, "About", None, None, self.show_about_dialog)
-        ])
+        action_group.add_actions(
+            [
+                ("HelpMenu", None, "Help"),
+                ("HelpAbout", None, "About", None, None, self.show_about_dialog),
+            ]
+        )
         uimanager = Gtk.UIManager()
-        uimanager.add_ui_from_string("""
+        uimanager.add_ui_from_string(
+            """
             <ui>
               <menubar name='MenuBar'>
                 <menu action='FileMenu'>
@@ -452,7 +494,8 @@ class Main(object):
                   <menuitem action='HelpAbout' />
                 </menu>
               </menubar>
-            </ui>""")
+            </ui>"""
+        )
         accelgroup = uimanager.get_accel_group()
         self.window.add_accel_group(accelgroup)
         uimanager.insert_action_group(action_group)
@@ -502,7 +545,8 @@ class Main(object):
                 True,
                 Gdk.EventMask.KEY_PRESS_MASK,
                 None,
-                Gdk.CURRENT_TIME)
+                Gdk.CURRENT_TIME,
+            )
         self.window.set_opacity(0.0)
         self.set_magnifier_cursor()
         # grab cursor img again after win is transparent
@@ -514,28 +558,41 @@ class Main(object):
 
         # Screenshot where the cursor is, at snapsize
         self.latest_pb = self.snap(
-            px-(self.snapsize[0]/2), py-(self.snapsize[1]/2),
-            self.snapsize[0], self.snapsize[1])
+            px - (self.snapsize[0] / 2),
+            py - (self.snapsize[1] / 2),
+            self.snapsize[0],
+            self.snapsize[1],
+        )
 
         # Zoom that screenshot up, and grab a
         # snapsize-sized piece from the middle
         scaled_pb = self.latest_pb.scale_simple(
-            self.snapsize[0] * 2, self.snapsize[1] * 2,
-            GdkPixbuf.InterpType.NEAREST)
+            self.snapsize[0] * 2, self.snapsize[1] * 2, GdkPixbuf.InterpType.NEAREST
+        )
         scaled_pb_subset = scaled_pb.new_subpixbuf(
-            self.snapsize[0] / 2 + 1, self.snapsize[1] / 2 + 1,
-            self.snapsize[0], self.snapsize[1])
+            self.snapsize[0] / 2 + 1,
+            self.snapsize[1] / 2 + 1,
+            self.snapsize[0],
+            self.snapsize[1],
+        )
 
         # Create the base surface for our cursor
-        base = cairo.ImageSurface(cairo.FORMAT_ARGB32,
-                                  self.snapsize[0] * self.zoomlevel,
-                                  self.snapsize[1] * self.zoomlevel)
+        base = cairo.ImageSurface(
+            cairo.FORMAT_ARGB32,
+            self.snapsize[0] * self.zoomlevel,
+            self.snapsize[1] * self.zoomlevel,
+        )
         base_context = cairo.Context(base)
         base_context.scale(self.zoomlevel, self.zoomlevel)
 
         # Create the circular path on our base surface
-        base_context.arc(self.snapsize[0] / 2, self.snapsize[1] / 2,
-                         self.snapsize[0] / 2, 0, 2*math.pi)
+        base_context.arc(
+            self.snapsize[0] / 2,
+            self.snapsize[1] / 2,
+            self.snapsize[0] / 2,
+            0,
+            2 * math.pi,
+        )
 
         # Paste in the screenshot
         Gdk.cairo_set_source_pixbuf(base_context, scaled_pb_subset, 0, 0)
@@ -562,7 +619,7 @@ class Main(object):
         # Draw the inside square border of the magnifier
         base_context.set_source_rgba(255, 0, 0, 0.5)
         base_context.set_line_width(1)
-        base_context.move_to(self.snapsize[0]/2 - 2, self.snapsize[1]/2 - 2)
+        base_context.move_to(self.snapsize[0] / 2 - 2, self.snapsize[1] / 2 - 2)
         base_context.rel_line_to(3, 0)
         base_context.rel_line_to(0, 3)
         base_context.rel_line_to(-3, 0)
@@ -579,8 +636,14 @@ class Main(object):
         loopcount = 0
         max_rwidth = self.snapsize[0] * 0.7
         while True:
-            x_bearing, y_bearing, text_width, text_height, x_advance, y_advance = \
-                base_context.text_extents(text)
+            (
+                x_bearing,
+                y_bearing,
+                text_width,
+                text_height,
+                x_advance,
+                y_advance,
+            ) = base_context.text_extents(text)
             rwidth = text_width + (2 * rect_border_width)
             if rwidth > max_rwidth:
                 nfs = nfs - 1
@@ -594,16 +657,21 @@ class Main(object):
                 break
 
         base_context.set_font_size(nfs)
-        x_bearing, y_bearing, text_width, text_height, x_advance, y_advance = \
-            base_context.text_extents(text)
+        (
+            x_bearing,
+            y_bearing,
+            text_width,
+            text_height,
+            x_advance,
+            y_advance,
+        ) = base_context.text_extents(text)
         text_draw_x = ((base.get_width() / self.zoomlevel) * 0.98) - text_width
-        text_draw_y = (((base.get_height() / self.zoomlevel) * 0.95) -
-                       text_height)
+        text_draw_y = ((base.get_height() / self.zoomlevel) * 0.95) - text_height
         base_context.rectangle(
             text_draw_x - rect_border_width + x_bearing,
             text_draw_y - rect_border_width + y_bearing,
             text_width + (2 * rect_border_width),
-            text_height + (2 * rect_border_width)
+            text_height + (2 * rect_border_width),
         )
         base_context.set_source_rgba(0, 0, 0, 0.7)
         base_context.fill()
@@ -612,37 +680,48 @@ class Main(object):
         base_context.show_text(text)
         # and draw colour swatch next to colour name
         base_context.rectangle(
-            text_draw_x - rect_border_width + x_bearing - (
-                text_height + (2 * rect_border_width)),
+            text_draw_x
+            - rect_border_width
+            + x_bearing
+            - (text_height + (2 * rect_border_width)),
             text_draw_y - rect_border_width + y_bearing,
             text_height + (2 * rect_border_width),
-            text_height + (2 * rect_border_width)
+            text_height + (2 * rect_border_width),
         )
-        base_context.set_source_rgba(col[0]/255.0, col[1]/255.0,
-                                     col[2]/255.0, 1.0)
+        base_context.set_source_rgba(
+            col[0] / 255.0, col[1] / 255.0, col[2] / 255.0, 1.0
+        )
         base_context.fill()
 
         # turn the base surface into a pixbuf and thence a cursor
-        drawn_pb = Gdk.pixbuf_get_from_surface(base, 0, 0, base.get_width(),
-                                               base.get_height())
+        drawn_pb = Gdk.pixbuf_get_from_surface(
+            base, 0, 0, base.get_width(), base.get_height()
+        )
         zoom_pb = drawn_pb.scale_simple(
-            self.snapsize[0] * self.zoomlevel, self.snapsize[1] * self.zoomlevel,
-            GdkPixbuf.InterpType.TILES)
+            self.snapsize[0] * self.zoomlevel,
+            self.snapsize[1] * self.zoomlevel,
+            GdkPixbuf.InterpType.TILES,
+        )
         magnifier = Gdk.Cursor.new_from_pixbuf(
             self.window.get_screen().get_display(),
             zoom_pb,
-            zoom_pb.get_width()/2, zoom_pb.get_height()/2)
+            zoom_pb.get_width() / 2,
+            zoom_pb.get_height() / 2,
+        )
 
         # Set the cursor
         self.pointer.grab(
             self.window.get_window(),
             Gdk.GrabOwnership.APPLICATION,
             True,
-            (Gdk.EventMask.BUTTON_PRESS_MASK |
-             Gdk.EventMask.POINTER_MOTION_MASK |
-             Gdk.EventMask.SCROLL_MASK),
+            (
+                Gdk.EventMask.BUTTON_PRESS_MASK
+                | Gdk.EventMask.POINTER_MOTION_MASK
+                | Gdk.EventMask.SCROLL_MASK
+            ),
             magnifier,
-            Gdk.CURRENT_TIME)
+            Gdk.CURRENT_TIME,
+        )
 
     def ungrab(self, *args, **kwargs):
         self.pointer.ungrab(Gdk.CURRENT_TIME)
@@ -673,16 +752,14 @@ class Main(object):
         # https://www.cairographics.org/samples/rounded_rectangle/
         surface.arc(w - radius, radius, radius, -90 * math.pi / 180, 0)
         surface.arc(w - radius, h - radius, radius, 0, 90 * math.pi / 180)
-        surface.arc(radius, h - radius, radius, 90 * math.pi / 180,
-                    180 * math.pi / 180)
-        surface.arc(radius, radius, radius, 180 * math.pi / 180,
-                    270 * math.pi / 180)
+        surface.arc(radius, h - radius, radius, 90 * math.pi / 180, 180 * math.pi / 180)
+        surface.arc(radius, radius, radius, 180 * math.pi / 180, 270 * math.pi / 180)
         surface.close_path()
 
     def rectangle_draw(self, da, surface, r, g, b):
         w, h = da.get_size_request()
         self.rounded_path(surface, w, h)
-        surface.set_source_rgb(r/255.0, g/255.0, b/255.0)
+        surface.set_source_rgb(r / 255.0, g / 255.0, b / 255.0)
         surface.clip_preserve()
         surface.fill_preserve()
         surface.set_line_width(2)
@@ -700,16 +777,18 @@ class Main(object):
         surface.stroke()
 
     def add_history_item(self, r, g, b, base64_imgdata=None, pixbuf=None):
-        def show_copy(eb, ev, img): img.set_opacity(1)
+        def show_copy(eb, ev, img):
+            img.set_opacity(1)
 
-        def hide_copy(eb, ev, img): img.set_opacity(0)
+        def hide_copy(eb, ev, img):
+            img.set_opacity(0)
 
         def clipboard(button, r, g, b, label):
             def unfade(label):
                 label.get_style_context().remove_class("highlighted")
+
             colour = self.formatters[self.active_formatter](r, g, b)
-            Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(
-                colour, len(colour))
+            Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(colour, len(colour))
             label.get_style_context().add_class("highlighted")
             GLib.timeout_add(300, unfade, label)
             self.play_sound("dialog-information")
@@ -729,16 +808,15 @@ class Main(object):
             success, data = pixbuf.save_to_bufferv("png", [], [])
             base64_imgdata = base64.b64encode(data).decode("utf-8")
         else:
-            raise Exception(
-                "A history item must have either imgdata or a pixbuf")
+            raise Exception("A history item must have either imgdata or a pixbuf")
 
         i = Gtk.DrawingArea()
-        i.set_size_request(self.snapsize[0]/2, self.snapsize[1]/2)
+        i.set_size_request(self.snapsize[0] / 2, self.snapsize[1] / 2)
         i.connect("draw", self.image_draw, pixbuf)
         hb.pack_start(i, False, False, 6)
 
         area = Gtk.DrawingArea()
-        area.set_size_request(self.snapsize[0]/2, self.snapsize[1]/2)
+        area.set_size_request(self.snapsize[0] / 2, self.snapsize[1] / 2)
         area.connect("draw", self.rectangle_draw, r, g, b)
         hb.pack_start(area, False, False, 6)
 
@@ -774,10 +852,7 @@ class Main(object):
         eb.show_all()
         revealer.set_reveal_child(True)
 
-        self.history.append({
-            "imgdata": base64_imgdata,
-            "colour": [r, g, b]
-        })
+        self.history.append({"imgdata": base64_imgdata, "colour": [r, g, b]})
 
         while len(self.history) > 5:
             del self.history[0]
@@ -793,27 +868,36 @@ class Main(object):
 
     def set_colour_label_text(self, lbl, r, g, b):
         mk = '<span color="%s">%s</span>\n<span color="%s">%s</span>'
-        lbl.set_markup(mk % (
-            self.formatters["CSS hex"](
-                255 * self.highlight_rgba.red,
-                255 * self.highlight_rgba.green,
-                255 * self.highlight_rgba.blue),
-            self.closest_name(r, g, b),
-            self.formatters["CSS hex"](
-                255 * self.lowlight_rgba.red,
-                255 * self.lowlight_rgba.green,
-                255 * self.lowlight_rgba.blue),
-            self.formatters[self.active_formatter](r, g, b).replace(
-                "<", "&lt;")
-        ))
+        lbl.set_markup(
+            mk
+            % (
+                self.formatters["CSS hex"](
+                    255 * self.highlight_rgba.red,
+                    255 * self.highlight_rgba.green,
+                    255 * self.highlight_rgba.blue,
+                ),
+                self.closest_name(r, g, b),
+                self.formatters["CSS hex"](
+                    255 * self.lowlight_rgba.red,
+                    255 * self.lowlight_rgba.green,
+                    255 * self.lowlight_rgba.blue,
+                ),
+                self.formatters[self.active_formatter](r, g, b).replace("<", "&lt;"),
+            )
+        )
 
     def finish_loading_history(self, f, res):
         try:
             try:
                 success, contents, _ = f.load_contents_finish(res)
             except GLib.Error as e:
-                print(("couldn't restore settings (error: %s),"
-                       " so assuming they're blank") % (e,))
+                print(
+                    (
+                        "couldn't restore settings (error: %s),"
+                        " so assuming they're blank"
+                    )
+                    % (e,)
+                )
                 contents = "{}"  # fake contents
 
             try:
@@ -828,7 +912,7 @@ class Main(object):
                         item["colour"][0],
                         item["colour"][1],
                         item["colour"][2],
-                        base64_imgdata=item["imgdata"]
+                        base64_imgdata=item["imgdata"],
                     )
             f = data.get("formatter")
             if f and f in self.formatters.keys():
@@ -875,25 +959,22 @@ class Main(object):
                 return  # if this is not the primary button, bail
             colour = self.get_colour_from_pb(self.latest_pb)
             pbcopy = self.latest_pb.scale_simple(
-                self.snapsize[0] / 2,
-                self.snapsize[1] / 2,
-                GdkPixbuf.InterpType.TILES)
-            self.add_history_item(colour[0], colour[1], colour[2],
-                                  pixbuf=pbcopy)
+                self.snapsize[0] / 2, self.snapsize[1] / 2, GdkPixbuf.InterpType.TILES
+            )
+            self.add_history_item(colour[0], colour[1], colour[2], pixbuf=pbcopy)
             GLib.idle_add(self.serialise)
             self.play_sound("camera-shutter")
 
     def get_colour_from_pb(self, pb):
         pixel_data = pb.get_pixels()
-        offset = (
-            (pb.get_rowstride() * (self.snapsize[1] / 2)) +
-            ((self.latest_pb.get_rowstride() / self.snapsize[0]) *
-                (self.snapsize[0] / 2)))
+        offset = (pb.get_rowstride() * (self.snapsize[1] / 2)) + (
+            (self.latest_pb.get_rowstride() / self.snapsize[0]) * (self.snapsize[0] / 2)
+        )
         offset = int(offset)
         rgb_vals = []
         # pixel data gets returned as bytes or int depending
         # on which Python version we're in
-        for x in pixel_data[offset:offset+3]:
+        for x in pixel_data[offset : offset + 3]:
             if isinstance(x, int):
                 rgb_vals.append(x)
             else:
@@ -907,11 +988,11 @@ class Main(object):
         self.set_magnifier_cursor()
 
     def change_format(self, cb):
-        self.active_formatter = cb.get_model().get_value(
-            cb.get_active_iter(), 0)
+        self.active_formatter = cb.get_model().get_value(cb.get_active_iter(), 0)
         for lbl, hist in zip(self.colour_text_labels, self.history):
-            self.set_colour_label_text(lbl, hist["colour"][0],
-                                       hist["colour"][1], hist["colour"][2])
+            self.set_colour_label_text(
+                lbl, hist["colour"][0], hist["colour"][1], hist["colour"][2]
+            )
         GLib.idle_add(self.serialise)
 
     def closest_name(self, r, g, b):
